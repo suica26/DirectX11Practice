@@ -29,4 +29,32 @@ bool Direct3D::Initialize(HWND hWnd, int width, int height)
 		D3D_FEATURE_LEVEL_9_2,	// Direct3D 9.2		ShaderModel3
 		D3D_FEATURE_LEVEL_9_1,	// Direct3D 9.1		ShaderModel3
 	};
+
+	// デバイスとデバイスコンテキストを作成
+	D3D_FEATURE_LEVEL futureLevel;
+	if (FAILED(D3D11CreateDevice(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		nullptr,
+		creationFlags,
+		featureLevels,
+		_countof(featureLevels),
+		D3D11_SDK_VERSION,
+		&m_device,
+		&futureLevel,
+		&m_deviceContext)))
+	{
+		return false;
+	}
+
+	//=========================================================
+	// スワップチェイン作成(フロントバッファに表示可能なバックバッファを持つもの)
+	//=========================================================
+	DXGI_SWAP_CHAIN_DESC scDesc = {};		// スワップチェーンの設定データ
+	scDesc.BufferDesc.Width = width;
+	scDesc.BufferDesc.Height = height;
+
+
+
+	return true;
 }
