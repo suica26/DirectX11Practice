@@ -4,6 +4,8 @@
 #include "framework.h"
 #include "Application.h"
 
+#include "Direct3D.h"
+
 #define MAX_LOADSTRING 100
 
 // グローバル変数:
@@ -42,6 +44,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
+    /*
     // メイン メッセージ ループ:
     while (GetMessage(&msg, nullptr, 0, 0))
     {
@@ -51,6 +54,41 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+    */
+    // ゲームループ
+    while (1)
+    {
+        if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            //======================================================
+            // ウィンドウメッセージ処理
+            //======================================================
+            // 終了メッセージが来た
+            if (msg.message == WM_QUIT)
+            {
+                break;
+            }
+            else
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+
+        //=======================================================
+        // ゲームの処理を書く
+        //=======================================================
+
+        // 画面の色を青色で塗りつぶす
+        float color[4] = { 0.2f, 0.2f, 1.0f, 1.0f };
+        D3D.m_deviceContext->ClearRenderTargetView(D3D.m_backBufferView.Get(), color);
+
+        // バックバッファの内容を画面に表示
+        D3D.m_swapChain->Present(1, 0);
+    }
+
+    // Direct3Dインスタンス削除
+    Direct3D::DeleteInstance();
 
     return (int) msg.wParam;
 }
@@ -104,6 +142,11 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    {
       return FALSE;
    }
+
+   // Direct3Dインスタンス作成
+   Direct3D::CreateInstance();
+   // Direct3D初期化
+   D3D.Initialize(hWnd, 1280, 720);
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);

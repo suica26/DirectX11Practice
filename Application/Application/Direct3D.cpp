@@ -51,10 +51,54 @@ bool Direct3D::Initialize(HWND hWnd, int width, int height)
 	// スワップチェイン作成(フロントバッファに表示可能なバックバッファを持つもの)
 	//=========================================================
 	DXGI_SWAP_CHAIN_DESC scDesc = {};		// スワップチェーンの設定データ
-	scDesc.BufferDesc.Width = width;
-	scDesc.BufferDesc.Height = height;
+	scDesc.BufferDesc.Width = width;		// 画面の幅
+	scDesc.BufferDesc.Height = height;		// 画面の高さ
+	scDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;		//バッファの形式
+	scDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	scDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+	scDesc.BufferDesc.RefreshRate.Numerator = 0;
+	scDesc.BufferDesc.RefreshRate.Denominator = 1;
+	scDesc.SampleDesc.Count = 1;								// MSAAは使用しない
+	scDesc.SampleDesc.Quality = 0;								// MSAAは使用しない
+	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;		//バッファの使用方法
+	scDesc.BufferCount = 2;										// バッファのカウント
+	scDesc.OutputWindow = hWnd;
+	scDesc.Windowed = TRUE;										// ウィンドウモード
+	scDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	scDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
 
+	// スワップチェインの作成
+	if (FAILED(factory->CreateSwapChain(m_device.Get(), &scDesc, &m_swapChain)))
+	{
+		return false;
+	}
 
+	// スワップチェインからバックバッファリソース取得
+	ComPtr<ID3D11Texture2D> pBackBuffer;
+	if (FAILED(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer))))
+	{
+		return false;
+	}
+
+	// バックバッファリソース用のRTVを作成
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = scDesc.BufferDesc.Format;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	if (FAILED(m_device->CreateRenderTargetView(pBackBuffer.Get(), &rtvDesc, &m_backBufferView)))
+	{
+		return false;
+	}
+
+	//================================================================
+	// デバイスコンテキストに描画に関する設定を行っておく
+	//================================================================
+
+	// バックバッファをRTとしてセット
+	m_deviceContext->OMSetRenderTargets(1, m_backBufferView.GetAddressOf(), nullptr);
+
+	// ビューポートの設定
+	D3D11_VIEWPORT vp = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
+	m_deviceContext->RSSetViewports(1, &vp);
 
 	return true;
 }
