@@ -1,9 +1,12 @@
-#include "Direct3D.h"
+#include "framework.h"
 
-#include <Windows.h>
+#include "Direct3D.h"
 
 bool Direct3D::Initialize(HWND hWnd, int width, int height)
 {
+	// ==========================================================================
+	// ファクトリー作成 (ビデオ　グラフィックの設定の列挙や指定に使用されるオブジェクト)
+	// ==========================================================================
 	ComPtr<IDXGIFactory> factory;
 
 	if (FAILED(CreateDXGIFactory(IID_PPV_ARGS(&factory))))
@@ -11,6 +14,9 @@ bool Direct3D::Initialize(HWND hWnd, int width, int height)
 		return false;
 	}
 
+	// ==========================================================================
+	// デバイス生成(主にリソース作成時に使用されるオブジェクト)
+	// ==========================================================================
 	UINT creationFlags = 0;
 
 #ifdef _DEBUG
@@ -93,12 +99,53 @@ bool Direct3D::Initialize(HWND hWnd, int width, int height)
 	// デバイスコンテキストに描画に関する設定を行っておく
 	//================================================================
 
+	auto p = &m_backBufferView;
+	p = nullptr;
+
 	// バックバッファをRTとしてセット
 	m_deviceContext->OMSetRenderTargets(1, m_backBufferView.GetAddressOf(), nullptr);
 
 	// ビューポートの設定
 	D3D11_VIEWPORT vp = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f };
 	m_deviceContext->RSSetViewports(1, &vp);
+
+	// ===============================================================
+	// シェーダーの作成
+	// ===============================================================
+	// 頂点シェーダーを読み込み&コンパイル
+	ComPtr<ID3DBlob> compiledVS;
+	if (FAILED(D3DCompileFromFile(L"Shader/SpriteShader.hlsl", nullptr, nullptr, "VS", "vs_5_0", 0, 0, &compiledVS, nullptr))) {
+		return false;
+	}
+
+	// ピクセルシェーダーを読み込み&コンパイル
+	ComPtr<ID3DBlob> compiledPS;
+	if (FAILED(D3DCompileFromFile(L"Shader/SpriteShader.hlsl", nullptr, nullptr, "PS", "ps_5_0", 0, 0, &compiledPS, nullptr))) {
+		return false;
+	}
+
+	// 頂点シェーダー作成
+	if (FAILED(m_device->CreateVertexShader(compiledVS->GetBufferPointer(), compiledVS->GetBufferSize(), nullptr, &m_spriteVS)))
+	{
+		return false;
+	}
+
+	// ピクセルシェーダー作成
+	if (FAILED(m_device->CreatePixelShader(compiledPS->GetBufferPointer(), compiledPS->GetBufferSize(), nullptr, &m_spritePS)))
+	{
+		return false;
+	}
+
+	// 1頂点の詳細な情報
+	std::vector<D3D11_INPUT_ELEMENT_DESC> layout = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	// 頂点インプットレイアウト作成
+	if (FAILED(m_device->CreateInputLayout(&layout[0], layout.size(), compiledVS->GetBufferPointer(), compiledVS->GetBufferSize(), & m_spriteInputLayout)))
+	{
+		return false;
+	}
 
 	return true;
 }
